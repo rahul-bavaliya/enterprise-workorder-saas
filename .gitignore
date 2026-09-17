@@ -216,3 +216,14 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+
+# .dockerignore
+.venv
+__pycache__
+.git
+
+
+# Ignore Alembic migration version scripts
+alembic/versions/*.py
+!alembic/versions/.gitkeep
