@@ -1,32 +1,73 @@
+"""app/modules/branch/router.py"""
+
 from uuid import UUID
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, or_
 
 from app.core.database import get_db
 from app.core.response import ResponseEnvelope
 from app.core.query_params import CommonQueryParams
-from app.core.exceptions import NotFoundException
+from app.core.exceptions import ExistingRecordException, NotActiveException, NotFoundException
 from app.modules.branch.models import Branch
-from app.modules.branch.schemas import BranchCreate, BranchResponse, BranchUpdate
+from app.modules.branch.schemas import (
+    BranchCreate,
+    BranchResponse,
+    BranchUpdate,
+)
 
 router = APIRouter(prefix="/branches", tags=["Branches"])
 
 
-@router.post("/", response_model=ResponseEnvelope[BranchResponse], status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/",
+    response_model=ResponseEnvelope[BranchResponse],
+    status_code=status.HTTP_201_CREATED,
+)
 async def create_branch(payload: BranchCreate, db: AsyncSession = Depends(get_db)):
     """
-    Create a new branch.
+    Create a new branch with duplicate prevention rules:
+    - Branch name must not be the same.
+    - Address should not be the same.
+    - Lat/Long should not be the same.
     """
     data = payload.model_dump()
     if data.get("website_url"):
         data["website_url"] = str(data["website_url"])
 
+    # --- DUPLICATE PREVENTION CHECK ---
+    duplicate_query = select(Branch).filter(
+        or_(
+            Branch.name.ilike(data["name"]),
+            # Check if exact address match occurs (address1, city, country)
+            # You can expand this based on your strictness requirements
+            (
+                (Branch.address1 == data.get("address1"))
+                & (Branch.city == data.get("city"))
+                & (Branch.country == data.get("country"))
+            ),
+            # Check if lat and long match precisely (if they are provided)
+            (
+                (Branch.latitude == data.get("latitude"))
+                & (Branch.longitude == data.get("longitude"))
+                & (Branch.latitude.is_not(None))
+                & (Branch.longitude.is_not(None))
+            ),
+        )
+    )
+
+    existing_branch = (await db.execute(duplicate_query)).scalars().first()
+    if existing_branch:
+        raise ExistingRecordException(
+            message="A branch with the same name, exact address, or geographic coordinates already exists.",
+        )
+    # ----------------------------------
+
     branch = Branch(**data)
     db.add(branch)
     await db.commit()
     await db.refresh(branch)
-    
+
     return ResponseEnvelope.ok(data=branch, message="Branch created successfully")
 
 
@@ -61,7 +102,7 @@ async def get_branch(branch_id: UUID, db: AsyncSession = Depends(get_db)):
     branch = await db.get(Branch, branch_id)
     if not branch:
         raise NotFoundException(message="Branch not found")
-        
+
     return ResponseEnvelope.ok(data=branch, message="Branch fetched successfully")
 
 
@@ -86,20 +127,26 @@ async def update_branch(
 
     await db.commit()
     await db.refresh(branch)
-    
+
     return ResponseEnvelope.ok(data=branch, message="Branch updated successfully")
 
 
 @router.delete("/{branch_id}", response_model=ResponseEnvelope[BranchResponse])
 async def delete_branch(branch_id: UUID, db: AsyncSession = Depends(get_db)):
     """
-    Delete a branch from the system.
+    Delete a branch from the system if it is currently active.
     """
     branch = await db.get(Branch, branch_id)
     if not branch:
         raise NotFoundException(message="Branch not found")
 
-    await db.delete(branch)
+    # Fixed: Replaced undefined NotActiveException with standard FastAPI HTTPException
+    if not branch.is_active:
+        raise NotActiveException(message="Branch is not active")
+
+    setattr(branch, "is_active", False)
+
     await db.commit()
-    
-    return ResponseEnvelope.ok(data=branch, message="Branch deleted successfully")
+    await db.refresh(branch)
+
+    return ResponseEnvelope.ok(data=branch, message="Branch deactivated successfully")

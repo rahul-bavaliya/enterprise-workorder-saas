@@ -1,5 +1,6 @@
 """app.modules.branch.models.py"""
 
+from datetime import datetime, timezone
 import uuid
 from sqlalchemy import (
     Column,
@@ -25,12 +26,13 @@ class Branch(Base):
     # Primary Key
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
-    # Multi-Tenant Isolation (Added back explicitly to support your BranchCreate schema context)
-    # tenant_id = Column(
-    #     UUID(as_uuid=True),
-    #     ForeignKey("tenants.id", ondelete="CASCADE"),
-    #     nullable=False,
-    # )
+    # Foreign Key pointing to Line of Business
+    lob_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("line_of_businesses.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
+    )
 
     # Branch Details
     name = Column(String(255), nullable=False)
@@ -59,33 +61,35 @@ class Branch(Base):
     website_url = Column(String(500), nullable=True)
     contact_person = Column(String(255), nullable=True)
 
-    # Division Details
-    division_name = Column(String(255), nullable=False)
-    lob_name = Column(String(255), nullable=False)
-
     # Active Status
     is_active = Column(Boolean, nullable=False, default=True)
 
     # Audit Timestamps
     created_at = Column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
+        DateTime(timezone=True),
+        default=lambda: datetime.now(
+            timezone.utc
+        ),  # Populates on the Python object immediately
+        server_default=func.now(),  # Ensures DB fallback
+        nullable=False,
     )
+
     updated_at = Column(
         DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
         server_default=func.now(),
-        onupdate=func.now(),
+        onupdate=lambda: datetime.now(timezone.utc),  # Punches new time on update
         nullable=False,
     )
 
     # Relationships
-    # tenant = relationship("Tenant", back_populates="branches")
+    line_of_business = relationship("LineOfBusiness", back_populates="branches")
 
     # Database Performance Optimization Indexes
     __table_args__ = (
         Index("ix_branches_email", "email"),
         Index("ix_branches_is_active", "is_active"),
-        Index("ix_branches_name", "name"),
+        Index(
+            "ix_branches_name", "name", unique=True
+        ),  # Enforces unique name at DB level
     )
-
-    def __repr__(self) -> str:
-        return f"<Branch(id={self.id}, name={self.name!r}, number={self.number})>"

@@ -24,18 +24,7 @@ class BranchBase(BaseModel):
         description="The name of the branch",
         examples=["Main Branch", "Downtown Branch", "Uptown Branch"],
     )
-    division_name: str = Field(
-        ...,
-        max_length=255,
-        description="Division name associated with the branch",
-        examples=["Sales", "Support", "Operations"],
-    )
-    lob_name: str = Field(
-        ...,
-        max_length=255,
-        description="Line of Business / Industry Type",
-        examples=["Retail", "Wholesale", "E-commerce"],
-    )
+
     is_active: bool = Field(
         default=True,
         description="Indicates if the branch is active",
@@ -98,39 +87,126 @@ class BranchBase(BaseModel):
         description="Name of the contact person for the branch",
         examples=["John Doe", "Jane Smith"],
     )
+    lob_id: UUID = Field(
+        ...,
+        description="The UUID of the associated Line of Business",
+        examples=["550e8400-e29b-41d4-a716-446655440000"],
+    )
 
 
 class BranchCreate(BranchBase):
-    # tenant_id: UUID
     pass
 
 
 class BranchUpdate(BaseModel):
     # Make all payload fields optional for partial PATCH updates
-    name: str | None = Field(None, max_length=255)
-    division_name: str | None = Field(None, max_length=255)
-    lob_name: str | None = Field(None, max_length=255)
+    name: str | None = Field(
+        None,
+        max_length=255,
+        description="The name of the branch",
+        examples=["Main Branch", "Downtown Branch", "Uptown Branch"],
+    )
+    division_name: str | None = Field(
+        None,
+        max_length=255,
+        description="The name of the division",
+        examples=["Sales", "Marketing", "IT"],
+    )
+    lob_name: str | None = Field(
+        None,
+        max_length=255,
+        description="The name of the line of business",
+        examples=["Retail", "Wholesale", "E-commerce"],
+    )
     is_active: bool | None = None
 
-    address1: str | None = Field(None, max_length=500)
-    address2: str | None = Field(None, max_length=500)
-    city: str | None = Field(None, max_length=255)
-    postal_code: str | None = Field(None, max_length=20)
-    province: str | None = Field(None, max_length=255)
-    country: str | None = Field(None, max_length=255)
-    region: str | None = Field(None, max_length=255)
-    latitude: Decimal | None = Field(None, ge=-90, le=90)
-    longitude: Decimal | None = Field(None, ge=-180, le=180)
+    address1: str | None = Field(
+        None,
+        max_length=500,
+        description="The first line of the branch address",
+        examples=["123 Main St", "456 Oak Ave"],
+    )
+    address2: str | None = Field(
+        None,
+        max_length=500,
+        description="The second line of the branch address",
+        examples=["Apt 1", "Suite 2"],
+    )
+    city: str | None = Field(
+        None,
+        max_length=255,
+        description="The city where the branch is located",
+        examples=["New York", "Los Angeles"],
+    )
+    postal_code: str | None = Field(
+        None,
+        max_length=20,
+        description="The postal code of the branch address",
+        examples=["10001", "90210"],
+    )
+    province: str | None = Field(
+        None,
+        max_length=255,
+        description="The province or state where the branch is located",
+        examples=["NY", "CA"],
+    )
+    country: str | None = Field(
+        None,
+        max_length=255,
+        description="The country where the branch is located",
+        examples=["USA", "Canada"],
+    )
+    region: str | None = Field(
+        None,
+        max_length=255,
+        description="The region where the branch is located",
+        examples=["Northeast", "West"],
+    )
+    latitude: Decimal | None = Field(
+        None,
+        ge=-90,
+        le=90,
+        description="GPS Latitude",
+        examples=[Decimal("40.7128"), Decimal("-33.8688")],
+    )
+    longitude: Decimal | None = Field(
+        None,
+        ge=-180,
+        le=180,
+        description="GPS Longitude",
+        examples=[Decimal("-74.0060"), Decimal("-118.2437")],
+    )
 
-    phone: PhoneStr | None = Field(None)
-    email: EmailStr | None = Field(None)
-    website_url: HttpUrl | str | None = Field(None, max_length=500)
-    contact_person: str | None = Field(None, max_length=255)
+    phone: PhoneStr | None = Field(
+        None,
+        description="The phone number of the branch",
+        examples=["+1234567890", "+1987654321"],
+    )
+    email: EmailStr | None = Field(
+        None,
+        description="The email address of the branch",
+        examples=["john.doe@example.com", "jane.smith@example.com"],
+    )
+    website_url: HttpUrl | str | None = Field(
+        None, max_length=500, description="The website URL of the branch"
+    )
+    contact_person: str | None = Field(
+        None,
+        max_length=255,
+        description="The name of the contact person for the branch",
+        examples=["John Doe", "Jane Smith"],
+    )
+
+    lob_id: UUID = Field(
+        ...,
+        description="The UUID of the associated Line of Business",
+        examples=["550e8400-e29b-41d4-a716-446655440000"],
+    )
 
 
 class BranchResponse(BranchBase):
     id: UUID
-    # tenant_id: UUID
+    # lob_id: UUID
     number: int = Field(
         ..., description="The database auto-incremented sequence number"
     )
