@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 from app.core.response import ResponseEnvelope
+from sqlalchemy.exc import SQLAlchemyError
 
 class AppException(Exception):
     def __init__(self, message: str, status_code: int = 400, error_code: str = "BAD_REQUEST"):
@@ -23,4 +24,13 @@ def register_exception_handlers(app: FastAPI):
         return JSONResponse(
             status_code=exc.status_code,
             content=ResponseEnvelope.fail(message=exc.message, error={"code": exc.error_code}).model_dump()
+        )
+
+    @app.exception_handler(SQLAlchemyError)
+    async def sqlalchemy_exception_handler(request: Request, exc: SQLAlchemyError):
+        # Log the error for internal debugging (optional)
+        # Here we return a generic database error to avoid leaking details
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content=ResponseEnvelope.fail(message="Database operation failed", error={"code": "DB_ERROR"}).model_dump()
         )
