@@ -9,7 +9,7 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-engine = create_async_engine(settings.DATABASE_URL, echo=True, future=True)
+engine = create_async_engine(settings.DATABASE_URL, echo=settings.SQL_ECHO, future=True)
 AsyncSessionLocal = async_sessionmaker(
     engine, class_=AsyncSession, expire_on_commit=False
 )
@@ -21,6 +21,5 @@ class Base(DeclarativeBase):
 
 async def get_db() -> AsyncSession:
     logger.info("Creating async database session")
-    logger.info(f"Database URL: {settings.DATABASE_URL}")
     async with AsyncSessionLocal() as session:
         yield session

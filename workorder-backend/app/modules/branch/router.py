@@ -1,23 +1,23 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from uuid import UUID
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from uuid import UUID
 
 from app.core.database import get_db
+from app.core.response import ResponseEnvelope
+from app.core.query_params import CommonQueryParams
+from app.core.exceptions import NotFoundException
 from app.modules.branch.models import Branch
-
-# Make sure to double-check if your schemas are in branch.schemas based on your folder structure
 from app.modules.branch.schemas import BranchCreate, BranchResponse, BranchUpdate
 
 router = APIRouter(prefix="/branches", tags=["Branches"])
 
 
-@router.post("/", response_model=BranchResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=ResponseEnvelope[BranchResponse], status_code=status.HTTP_201_CREATED)
 async def create_branch(payload: BranchCreate, db: AsyncSession = Depends(get_db)):
     """
     Create a new branch.
     """
-    # Convert Pydantic fields (like HttpUrl) to strings if needed for SQLAlchemy compatibility
     data = payload.model_dump()
     if data.get("website_url"):
         data["website_url"] = str(data["website_url"])
@@ -26,37 +26,46 @@ async def create_branch(payload: BranchCreate, db: AsyncSession = Depends(get_db
     db.add(branch)
     await db.commit()
     await db.refresh(branch)
-    return branch
+    
+    return ResponseEnvelope.ok(data=branch, message="Branch created successfully")
 
 
-@router.get("/", response_model=list[BranchResponse])
-async def list_branches(db: AsyncSession = Depends(get_db)):
+@router.get("/", response_model=ResponseEnvelope[list[BranchResponse]])
+async def list_branches(
+    params: CommonQueryParams = Depends(CommonQueryParams.depends),
+    db: AsyncSession = Depends(get_db),
+):
     """
-    List all branches.
+    List all branches with pagination, search, and predictable ordering.
     """
     query = select(Branch)
 
-    # Order by the new sequence number so lists come back predictable
-    query = query.order_by(Branch.number.asc())
+    # Apply search filter if provided
+    if params.search:
+        query = query.filter(Branch.name.ilike(f"%{params.search}%"))
+
+    # Apply pagination using the query params utility
+    query = query.offset(params.skip).limit(params.limit)
 
     result = await db.execute(query)
-    return result.scalars().all()
+    branches = result.scalars().all()
+
+    return ResponseEnvelope.ok(data=branches, message="Fetched branches successfully")
 
 
-@router.get("/{branch_id}", response_model=BranchResponse)
+@router.get("/{branch_id}", response_model=ResponseEnvelope[BranchResponse])
 async def get_branch(branch_id: UUID, db: AsyncSession = Depends(get_db)):
     """
     Retrieve a single branch by its UUID.
     """
     branch = await db.get(Branch, branch_id)
     if not branch:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Branch not found"
-        )
-    return branch
+        raise NotFoundException(message="Branch not found")
+        
+    return ResponseEnvelope.ok(data=branch, message="Branch fetched successfully")
 
 
-@router.patch("/{branch_id}", response_model=BranchResponse)
+@router.patch("/{branch_id}", response_model=ResponseEnvelope[BranchResponse])
 async def update_branch(
     branch_id: UUID, payload: BranchUpdate, db: AsyncSession = Depends(get_db)
 ):
@@ -65,14 +74,10 @@ async def update_branch(
     """
     branch = await db.get(Branch, branch_id)
     if not branch:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Branch not found"
-        )
+        raise NotFoundException(message="Branch not found")
 
-    # Extract only the fields explicitly sent in the patch payload body
     update_data = payload.model_dump(exclude_unset=True)
 
-    # Cast Pydantic's specialized URL object to a standard string for SQLAlchemy
     if "website_url" in update_data and update_data["website_url"] is not None:
         update_data["website_url"] = str(update_data["website_url"])
 
@@ -81,20 +86,20 @@ async def update_branch(
 
     await db.commit()
     await db.refresh(branch)
-    return branch
+    
+    return ResponseEnvelope.ok(data=branch, message="Branch updated successfully")
 
 
-@router.delete("/{branch_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{branch_id}", response_model=ResponseEnvelope[BranchResponse])
 async def delete_branch(branch_id: UUID, db: AsyncSession = Depends(get_db)):
     """
     Delete a branch from the system.
     """
     branch = await db.get(Branch, branch_id)
     if not branch:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Branch not found"
-        )
+        raise NotFoundException(message="Branch not found")
 
     await db.delete(branch)
     await db.commit()
-    return None
+    
+    return ResponseEnvelope.ok(data=branch, message="Branch deleted successfully")
