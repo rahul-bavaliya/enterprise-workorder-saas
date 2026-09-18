@@ -20,7 +20,7 @@ router = APIRouter(prefix="/work-orders", tags=["Work Orders & Assets"])
     "/assets/", response_model=AssetResponse, status_code=status.HTTP_201_CREATED
 )
 async def create_asset(asset_in: AssetCreate, db: AsyncSession = Depends(get_db)):
-    new_asset = Asset(**asset_in.dict())
+    new_asset = Asset(**asset_in.model_dump())
     db.add(new_asset)
     await db.commit()
     await db.refresh(new_asset)
@@ -29,7 +29,7 @@ async def create_asset(asset_in: AssetCreate, db: AsyncSession = Depends(get_db)
 
 @router.post("/", response_model=WorkOrderResponse, status_code=status.HTTP_201_CREATED)
 async def create_work_order(wo_in: WorkOrderCreate, db: AsyncSession = Depends(get_db)):
-    new_wo = WorkOrder(**wo_in.dict())
+    new_wo = WorkOrder(**wo_in.model_dump())
     db.add(new_wo)
     await db.commit()
     await db.refresh(new_wo)

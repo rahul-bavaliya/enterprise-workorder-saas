@@ -81,12 +81,11 @@ class Branch(Base):
     # tenant = relationship("Tenant", back_populates="branches")
 
     # Database Performance Optimization Indexes
-    # __table_args__ = (
-    #     Index("ix_branches_tenant_id", "tenant_id"),
-    #     Index("ix_branches_email", "email"),
-    #     Index("ix_branches_tenant_name", "tenant_id", "name"),
-    #     Index("ix_branches_is_active", "is_active"),
-    # )
+    __table_args__ = (
+        Index("ix_branches_email", "email"),
+        Index("ix_branches_is_active", "is_active"),
+        Index("ix_branches_name", "name"),
+    )
 
     def __repr__(self) -> str:
         return f"<Branch(id={self.id}, name={self.name!r}, number={self.number})>"
