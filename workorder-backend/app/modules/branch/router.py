@@ -90,7 +90,7 @@ async def update_branch(
     return ResponseEnvelope.ok(data=branch, message="Branch updated successfully")
 
 
-@router.delete("/{branch_id}", response_model=ResponseEnvelope[None])
+@router.delete("/{branch_id}", response_model=ResponseEnvelope[BranchResponse])
 async def delete_branch(branch_id: UUID, db: AsyncSession = Depends(get_db)):
     """
     Delete a branch from the system.
@@ -102,4 +102,4 @@ async def delete_branch(branch_id: UUID, db: AsyncSession = Depends(get_db)):
     await db.delete(branch)
     await db.commit()
     
-    return ResponseEnvelope.ok(data=None, message="Branch deleted successfully")
+    return ResponseEnvelope.ok(data=branch, message="Branch deleted successfully")
