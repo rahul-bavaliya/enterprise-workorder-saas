@@ -1,0 +1,70 @@
+# app/api/v1/services/branch.py
+from typing import List, Optional, Union
+from uuid import UUID
+from sqlalchemy.orm import Session
+
+from app.db.models.branch import Branch
+from app.api.v1.schemas.branch import BranchCreate, BranchUpdate, BranchResponse
+
+
+class BranchService:
+    def __init__(self, db: Session):
+        self.db = db
+
+    def get(self, id: UUID) -> Optional[Branch]:
+        return self.db.query(Branch).filter(Branch.id == id).first()
+
+    def get_multi(
+        self, *, skip: int = 0, limit: int = 100
+    ) -> List[Branch]:
+        return self.db.query(Branch).offset(skip).limit(limit).all()
+
+    def create(self, *, obj_in: BranchCreate) -> Branch:
+        db_obj = Branch(
+            name=obj_in.name,
+            number=obj_in.number,
+            lob_id=obj_in.lob_id,
+            address1=obj_in.address1,
+            address2=obj_in.address2,
+            city=obj_in.city,
+            postal_code=obj_in.postal_code,
+            province=obj_in.province,
+            country=obj_in.country,
+            latitude=obj_in.latitude,
+            longitude=obj_in.longitude,
+            region=obj_in.region,
+            phone=obj_in.phone,
+            email=obj_in.email,
+            website_url=obj_in.website_url,
+            contact_person=obj_in.contact_person,
+            division_name=obj_in.division_name,
+            is_active=obj_in.is_active
+        )
+        self.db.add(db_obj)
+        self.db.commit()
+        self.db.refresh(db_obj)
+        return db_obj
+
+    def update(
+        self,
+        *,
+        db_obj: Branch,
+        obj_in: Union[BranchUpdate, dict]
+    ) -> Branch:
+        if isinstance(obj_in, dict):
+            update_data = obj_in
+        else:
+            update_data = obj_in.model_dump(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(db_obj, field, value)
+        self.db.add(db_obj)
+        self.db.commit()
+        self.db.refresh(db_obj)
+        return db_obj
+
+    def remove(self, *, id: UUID) -> Optional[Branch]:
+        obj = self.db.query(Branch).get(id)
+        if obj:
+            self.db.delete(obj)
+            self.db.commit()
+        return obj

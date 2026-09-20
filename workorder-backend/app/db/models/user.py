@@ -1,7 +1,7 @@
-"""app/modules/tenant/models.py"""
+"""app.db.models.user.models.py"""
 
 import uuid
-from sqlalchemy import Column, String, DateTime, ForeignKey, Enum, func
+from sqlalchemy import Column, String, DateTime, func, Enum, Boolean
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 import enum
@@ -18,29 +18,15 @@ class UserRole(str, enum.Enum):
     SERVICE_WRITER = "service_writer"
 
 
-class Tenant(Base):
-    __tablename__ = "tenants"
-
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name = Column(String(255), nullable=False, unique=True)
-    schema_name = Column(
-        String(63), nullable=False, unique=True
-    )  # For schema-per-tenant isolation
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    users = relationship("User", back_populates="tenant", cascade="all, delete-orphan")
-
-
 class User(Base):
     __tablename__ = "users"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    tenant_id = Column(
-        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
-    )
     email = Column(String(255), nullable=False, unique=True, index=True)
     hashed_password = Column(String(255), nullable=False)
     role = Column(Enum(UserRole), nullable=False, default=UserRole.TECHNICIAN)
+    is_active = Column(Boolean, nullable=False, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    tenant = relationship("Tenant", back_populates="users")
+    def __repr__(self) -> str:
+        return f"<User(id={self.id}, email={self.email!r}, role={self.role!r})>"

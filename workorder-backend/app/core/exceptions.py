@@ -10,13 +10,42 @@ class AppException(Exception):
         self.error_code = error_code
         super().__init__(self.message)
 
+
 class NotFoundException(AppException):
     def __init__(self, message: str = "Resource not found"):
-        super().__init__(message=message, status_code=status.HTTP_404_NOT_FOUND, error_code="NOT_FOUND")
+        super().__init__(
+            message=message,
+            status_code=status.HTTP_404_NOT_FOUND,
+            error_code="NOT_FOUND",
+        )
+
+
+class ExistingRecordException(AppException):
+    def __init__(self, message: str = "Record already exists"):
+        super().__init__(
+            message=message,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            error_code="EXISTING_RECORD",
+        )
+
+
+class NotActiveException(AppException):
+    def __init__(self, message: str = "Resource is not active"):
+        super().__init__(
+            message=message,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            error_code="NOT_ACTIVE",
+        )
+
 
 class DatabaseException(AppException):
     def __init__(self, message: str = "Database operation failed"):
-        super().__init__(message=message, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, error_code="DB_ERROR")
+        super().__init__(
+            message=message,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            error_code="DB_ERROR",
+        )
+
 
 def register_exception_handlers(app: FastAPI):
     @app.exception_handler(AppException)
@@ -32,5 +61,5 @@ def register_exception_handlers(app: FastAPI):
         # Here we return a generic database error to avoid leaking details
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content=ResponseEnvelope.fail(message="Database operation failed", error={"code": "DB_ERROR"}).model_dump()
+            content=ResponseEnvelope.fail(message="Database operation failed", error={"code": "DB_ERROR", "details": str(exc)}).model_dump()
         )

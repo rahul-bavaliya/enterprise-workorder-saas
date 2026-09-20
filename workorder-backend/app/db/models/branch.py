@@ -1,4 +1,4 @@
-"""app.modules.branch.models.py"""
+"""app.db.models.branch.models.py"""
 
 import uuid
 from sqlalchemy import (
@@ -6,7 +6,6 @@ from sqlalchemy import (
     Identity,
     Integer,
     Numeric,
-    Sequence,
     String,
     Boolean,
     DateTime,
@@ -17,6 +16,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.core.database import Base
+from app.db.models.line_of_business import LineOfBusiness
 
 
 class Branch(Base):
@@ -25,12 +25,6 @@ class Branch(Base):
     # Primary Key
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
-    # Multi-Tenant Isolation (Added back explicitly to support your BranchCreate schema context)
-    # tenant_id = Column(
-    #     UUID(as_uuid=True),
-    #     ForeignKey("tenants.id", ondelete="CASCADE"),
-    #     nullable=False,
-    # )
 
     # Branch Details
     name = Column(String(255), nullable=False)
@@ -39,6 +33,11 @@ class Branch(Base):
         Identity(start=10001, always=False),
         nullable=False,
         unique=True,
+    )
+    lob_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("line_of_businesses.id"),
+        nullable=False,
     )
 
     # Branch Location Details
@@ -61,7 +60,6 @@ class Branch(Base):
 
     # Division Details
     division_name = Column(String(255), nullable=False)
-    lob_name = Column(String(255), nullable=False)
 
     # Active Status
     is_active = Column(Boolean, nullable=False, default=True)
@@ -78,7 +76,7 @@ class Branch(Base):
     )
 
     # Relationships
-    # tenant = relationship("Tenant", back_populates="branches")
+    line_of_business = relationship("LineOfBusiness", back_populates="branches")
 
     # Database Performance Optimization Indexes
     __table_args__ = (
