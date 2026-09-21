@@ -8,22 +8,32 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_db, get_current_active_user
 from app.api.v1.schemas.asset import AssetCreate, AssetResponse, AssetUpdate
 from app.api.v1.services.asset import AssetService
+from app.core.response import ResponseEnvelope
 
 router = APIRouter()
 
 
-@router.post("/", response_model=AssetResponse, status_code=status.HTTP_201_CREATED)
-def create_asset(
+@router.post(
+    "/",
+    response_model=ResponseEnvelope[AssetResponse],
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_asset(
     *,
     asset_in: AssetCreate,
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_active_user)
+    current_user=Depends(get_current_active_user)
 ) -> AssetResponse:
     """
     Create a new asset.
     """
     service = AssetService(db)
-    return service.create(obj_in=asset_in)
+    asset = await service.create(obj_in=asset_in)
+
+    return ResponseEnvelope[AssetResponse].ok(
+        data=AssetResponse.model_validate(asset),
+        message="User created successfully",
+    )
 
 
 @router.get("/", response_model=List[AssetResponse])
@@ -32,14 +42,16 @@ def read_assets(
     skip: int = 0,
     limit: int = Query(100, ge=1, le=100),
     customer_id: Optional[UUID] = Query(None, description="Filter by customer ID"),
-    current_user = Depends(get_current_active_user)
+    current_user=Depends(get_current_active_user),
 ) -> List[AssetResponse]:
     """
     Retrieve assets.
     """
     service = AssetService(db)
     if customer_id:
-        return service.get_multi_by_customer(customer_id=customer_id, skip=skip, limit=limit)
+        return service.get_multi_by_customer(
+            customer_id=customer_id, skip=skip, limit=limit
+        )
     return service.get_multi(skip=skip, limit=limit)
 
 
@@ -48,7 +60,7 @@ def read_asset(
     *,
     asset_id: UUID,
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_active_user)
+    current_user=Depends(get_current_active_user)
 ) -> AssetResponse:
     """
     Get a specific asset by id.
@@ -69,7 +81,7 @@ def update_asset(
     asset_id: UUID,
     asset_in: AssetUpdate,
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_active_user)
+    current_user=Depends(get_current_active_user)
 ) -> AssetResponse:
     """
     Update an asset.
@@ -89,7 +101,7 @@ def delete_asset(
     *,
     asset_id: UUID,
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_active_user)
+    current_user=Depends(get_current_active_user)
 ) -> AssetResponse:
     """
     Delete an asset.

@@ -1,24 +1,24 @@
 # app/api/v1/services/branch.py
 from typing import List, Optional, Union
 from uuid import UUID
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from app.db.models.branch import Branch
 from app.api.v1.schemas.branch import BranchCreate, BranchUpdate
 
 
 class BranchService:
-    def __init__(self, db: Session):
+    def __init__(self, db: AsyncSession):
         self.db = db
 
-    def get(self, id: UUID) -> Optional[Branch]:
-        return self.db.query(Branch).filter(Branch.id == id).first()
+    async def get(self, id: UUID) -> Optional[Branch]:
+        return await self.db.get(Branch, id)
 
-    def get_multi(
-        self, *, skip: int = 0, limit: int = 100
-    ) -> List[Branch]:
-        return self.db.query(Branch).offset(skip).limit(limit).all()
+    async def get_multi(self, *, skip: int = 0, limit: int = 100) -> List[Branch]:
+        result = await self.db.execute(select(Branch).offset(skip).limit(limit))
+        return result.scalars().all()
 
-    def create(self, *, obj_in: BranchCreate) -> Branch:
+    async def create(self, *, obj_in: BranchCreate) -> Branch:
         db_obj = Branch(
             business_id=obj_in.business_id,
             branch_manager_id=obj_in.branch_manager_id,
@@ -39,18 +39,15 @@ class BranchService:
             website_url=obj_in.website_url,
             contact_person=obj_in.contact_person,
             division_name=obj_in.division_name,
-            is_active=obj_in.is_active
+            is_active=obj_in.is_active,
         )
         self.db.add(db_obj)
-        self.db.commit()
-        self.db.refresh(db_obj)
+        await self.db.commit()
+        await self.db.refresh(db_obj)
         return db_obj
 
-    def update(
-        self,
-        *,
-        db_obj: Branch,
-        obj_in: Union[BranchUpdate, dict]
+    async def update(
+        self, *, db_obj: Branch, obj_in: Union[BranchUpdate, dict]
     ) -> Branch:
         if isinstance(obj_in, dict):
             update_data = obj_in
@@ -61,13 +58,13 @@ class BranchService:
             setattr(db_obj, field, value)
 
         self.db.add(db_obj)
-        self.db.commit()
-        self.db.refresh(db_obj)
+        await self.db.commit()
+        await self.db.refresh(db_obj)
         return db_obj
 
-    def remove(self, *, id: UUID) -> Optional[Branch]:
-        obj = self.db.query(Branch).get(id)
+    async def remove(self, *, id: UUID) -> Optional[Branch]:
+        obj = await self.get(id)
         if obj:
-            self.db.delete(obj)
-            self.db.commit()
+            await self.db.delete(obj)
+            await self.db.commit()
         return obj

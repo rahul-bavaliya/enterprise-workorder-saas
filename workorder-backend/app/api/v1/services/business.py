@@ -1,24 +1,24 @@
 # app/api/v1/services/business.py
 from typing import List, Optional, Union
 from uuid import UUID
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from app.db.models.business import Business
 from app.api.v1.schemas.business import BusinessCreate, BusinessUpdate
 
 
 class BusinessService:
-    def __init__(self, db: Session):
+    def __init__(self, db: AsyncSession):
         self.db = db
 
-    def get(self, id: UUID) -> Optional[Business]:
-        return self.db.query(Business).filter(Business.id == id).first()
+    async def get(self, id: UUID) -> Optional[Business]:
+        return await self.db.get(Business, id)
 
-    def get_multi(
-        self, *, skip: int = 0, limit: int = 100
-    ) -> List[Business]:
-        return self.db.query(Business).offset(skip).limit(limit).all()
+    async def get_multi(self, *, skip: int = 0, limit: int = 100) -> List[Business]:
+        result = await self.db.execute(select(Business).offset(skip).limit(limit))
+        return result.scalars().all()
 
-    def create(self, *, obj_in: BusinessCreate) -> Business:
+    async def create(self, *, obj_in: BusinessCreate) -> Business:
         db_obj = Business(
             name=obj_in.name,
             description=obj_in.description,
@@ -31,18 +31,15 @@ class BusinessService:
             country=obj_in.country,
             postal_code=obj_in.postal_code,
             website_url=obj_in.website_url,
-            is_active=obj_in.is_active
+            is_active=obj_in.is_active,
         )
         self.db.add(db_obj)
-        self.db.commit()
-        self.db.refresh(db_obj)
+        await self.db.commit()
+        await self.db.refresh(db_obj)
         return db_obj
 
-    def update(
-        self,
-        *,
-        db_obj: Business,
-        obj_in: Union[BusinessUpdate, dict]
+    async def update(
+        self, *, db_obj: Business, obj_in: Union[BusinessUpdate, dict]
     ) -> Business:
         if isinstance(obj_in, dict):
             update_data = obj_in
@@ -53,13 +50,13 @@ class BusinessService:
             setattr(db_obj, field, value)
 
         self.db.add(db_obj)
-        self.db.commit()
-        self.db.refresh(db_obj)
+        await self.db.commit()
+        await self.db.refresh(db_obj)
         return db_obj
 
-    def remove(self, *, id: UUID) -> Optional[Business]:
-        obj = self.db.query(Business).get(id)
+    async def remove(self, *, id: UUID) -> Optional[Business]:
+        obj = await self.get(id)
         if obj:
-            self.db.delete(obj)
-            self.db.commit()
+            await self.db.delete(obj)
+            await self.db.commit()
         return obj

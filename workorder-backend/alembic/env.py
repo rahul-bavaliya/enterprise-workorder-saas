@@ -1,6 +1,6 @@
 """alembic/env.py
 This is the Alembic environment script for handling database migrations.
-It sets up the database connection and runs migrations in both offline and online modes.
+It sets up the database connection and runs migrations in both offline and online modes using asyncpg.
 """
 
 import asyncio
@@ -18,7 +18,6 @@ sys.path.append(str(Path(__file__).resolve().parents[1]))
 # Import your application's Base, models, and settings config
 from app.core.database import Base
 from app.core.config import settings
-
 
 from app.db.models.business import Business
 from app.db.models.branch import Branch
@@ -43,10 +42,15 @@ target_metadata = Base.metadata
 
 
 def get_url() -> str:
-    """Retrieve database URL and ensure it uses the async driver for Alembic."""
+    """Retrieve database URL and ensure it strictly uses the asyncpg driver for Alembic."""
     db_url = os.getenv("DATABASE_URL", settings.DATABASE_URL)
-    if "postgresql://" in db_url and "+asyncpg" not in db_url:
+
+    # Properly swap out any sync driver references with asyncpg
+    if "+psycopg2" in db_url:
+        db_url = db_url.replace("+psycopg2", "+asyncpg")
+    elif "postgresql://" in db_url and "+" not in db_url:
         db_url = db_url.replace("postgresql://", "postgresql+asyncpg://")
+
     return db_url
 
 

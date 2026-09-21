@@ -1,10 +1,11 @@
 # app/core/security.py
-from datetime import datetime, timedelta, timezone
-from typing import Dict, Optional, Union
+from datetime import datetime, timedelta
+from typing import Dict, Optional
 from jose import jwt
 from jose.exceptions import JWTError
 from passlib.context import CryptContext
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from app.core.config import settings
 from app.db.models.user import User
 
@@ -20,11 +21,15 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
 
-def authenticate_user(db: Session, email: str, password: str) -> Union[User, None]:
+async def authenticate_user(
+    db: AsyncSession, email: str, password: str
+) -> Optional[User]:
     """
-    Authenticate a user by email and password.
+    Authenticate a user by email and password using AsyncSession.
     """
-    user = db.query(User).filter(User.email == email).first()
+    result = await db.execute(select(User).filter(User.email == email))
+    user = result.scalars().first()
+
     if not user:
         return None
     if not verify_password(password, user.hashed_password):
@@ -32,22 +37,24 @@ def authenticate_user(db: Session, email: str, password: str) -> Union[User, Non
     return user
 
 
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+async def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
         expire = datetime.utcnow() + timedelta(minutes=15)
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    encoded_jwt = jwt.encode(
+        to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+    )
     return encoded_jwt
 
 
-def verify_token(token: str) -> Dict[str, str]:
+async def verify_token(token: str) -> Dict[str, str]:
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        payload = jwt.decode(
+            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
+        )
         return payload
     except JWTError:
-        # In a real application, you might want to log the error
-        # For now, we'll raise an error that will be caught in deps.py
         raise JWTError("Could not validate credentials")

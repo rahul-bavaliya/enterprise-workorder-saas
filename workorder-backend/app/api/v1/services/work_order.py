@@ -1,8 +1,8 @@
 # app/api/v1/services/work_order.py
 from typing import List, Optional, Union
 from uuid import UUID
-from sqlalchemy.orm import Session
-from sqlalchemy import and_
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, and_
 
 from app.db.models.work_order import (
     Asset,
@@ -33,32 +33,34 @@ from app.api.v1.schemas.work_order import (
 
 
 class AssetService:
-    def __init__(self, db: Session):
+    def __init__(self, db: AsyncSession):
         self.db = db
 
-    def get(self, id: UUID) -> Optional[Asset]:
-        return self.db.query(Asset).filter(Asset.id == id).first()
+    async def get(self, id: UUID) -> Optional[Asset]:
+        return await self.db.get(Asset, id)
 
-    def get_by_serial(self, serial_number: str) -> Optional[Asset]:
-        return self.db.query(Asset).filter(Asset.serial_number == serial_number).first()
+    async def get_by_serial(self, serial_number: str) -> Optional[Asset]:
+        result = await self.db.execute(
+            select(Asset).filter(Asset.serial_number == serial_number)
+        )
+        return result.scalars().first()
 
-    def get_multi_by_customer(
+    async def get_multi_by_customer(
         self, customer_id: UUID, skip: int = 0, limit: int = 100
     ) -> List[Asset]:
-        return (
-            self.db.query(Asset)
+        result = await self.db.execute(
+            select(Asset)
             .filter(Asset.customer_id == customer_id)
             .offset(skip)
             .limit(limit)
-            .all()
         )
+        return result.scalars().all()
 
-    def get_multi(
-        self, *, skip: int = 0, limit: int = 100
-    ) -> List[Asset]:
-        return self.db.query(Asset).offset(skip).limit(limit).all()
+    async def get_multi(self, *, skip: int = 0, limit: int = 100) -> List[Asset]:
+        result = await self.db.execute(select(Asset).offset(skip).limit(limit))
+        return result.scalars().all()
 
-    def create(self, *, obj_in: AssetCreate) -> Asset:
+    async def create(self, *, obj_in: AssetCreate) -> Asset:
         db_obj = Asset(
             name=obj_in.name,
             category=obj_in.category,
@@ -67,16 +69,11 @@ class AssetService:
             customer_id=obj_in.customer_id,
         )
         self.db.add(db_obj)
-        self.db.commit()
-        self.db.refresh(db_obj)
+        await self.db.commit()
+        await self.db.refresh(db_obj)
         return db_obj
 
-    def update(
-        self,
-        *,
-        db_obj: Asset,
-        obj_in: Union[AssetUpdate, dict]
-    ) -> Asset:
+    async def update(self, *, db_obj: Asset, obj_in: Union[AssetUpdate, dict]) -> Asset:
         if isinstance(obj_in, dict):
             update_data = obj_in
         else:
@@ -84,57 +81,52 @@ class AssetService:
         for field, value in update_data.items():
             setattr(db_obj, field, value)
         self.db.add(db_obj)
-        self.db.commit()
-        self.db.refresh(db_obj)
+        await self.db.commit()
+        await self.db.refresh(db_obj)
         return db_obj
 
-    def remove(self, *, id: UUID) -> Optional[Asset]:
-        obj = self.db.query(Asset).get(id)
+    async def remove(self, *, id: UUID) -> Optional[Asset]:
+        obj = await self.get(id)
         if obj:
-            self.db.delete(obj)
-            self.db.commit()
+            await self.db.delete(obj)
+            await self.db.commit()
         return obj
 
 
 class WorkOrderService:
-    def __init__(self, db: Session):
+    def __init__(self, db: AsyncSession):
         self.db = db
 
-    def get(self, id: UUID) -> Optional[WorkOrder]:
-        return (
-            self.db.query(WorkOrder)
-            .filter(WorkOrder.id == id)
-            .first()
-        )
+    async def get(self, id: UUID) -> Optional[WorkOrder]:
+        return await self.db.get(WorkOrder, id)
 
-    def get_multi_by_customer(
+    async def get_multi_by_customer(
         self, customer_id: UUID, skip: int = 0, limit: int = 100
     ) -> List[WorkOrder]:
-        return (
-            self.db.query(WorkOrder)
+        result = await self.db.execute(
+            select(WorkOrder)
             .filter(WorkOrder.customer_id == customer_id)
             .offset(skip)
             .limit(limit)
-            .all()
         )
+        return result.scalars().all()
 
-    def get_multi_by_asset(
+    async def get_multi_by_asset(
         self, asset_id: UUID, skip: int = 0, limit: int = 100
     ) -> List[WorkOrder]:
-        return (
-            self.db.query(WorkOrder)
+        result = await self.db.execute(
+            select(WorkOrder)
             .filter(WorkOrder.asset_id == asset_id)
             .offset(skip)
             .limit(limit)
-            .all()
         )
+        return result.scalars().all()
 
-    def get_multi(
-        self, *, skip: int = 0, limit: int = 100
-    ) -> List[WorkOrder]:
-        return self.db.query(WorkOrder).offset(skip).limit(limit).all()
+    async def get_multi(self, *, skip: int = 0, limit: int = 100) -> List[WorkOrder]:
+        result = await self.db.execute(select(WorkOrder).offset(skip).limit(limit))
+        return result.scalars().all()
 
-    def create(self, *, obj_in: WorkOrderCreate) -> WorkOrder:
+    async def create(self, *, obj_in: WorkOrderCreate) -> WorkOrder:
         db_obj = WorkOrder(
             customer_id=obj_in.customer_id,
             asset_id=obj_in.asset_id,
@@ -144,15 +136,12 @@ class WorkOrderService:
             assigned_technician_id=obj_in.assigned_technician_id,
         )
         self.db.add(db_obj)
-        self.db.commit()
-        self.db.refresh(db_obj)
+        await self.db.commit()
+        await self.db.refresh(db_obj)
         return db_obj
 
-    def update(
-        self,
-        *,
-        db_obj: WorkOrder,
-        obj_in: Union[WorkOrderUpdate, dict]
+    async def update(
+        self, *, db_obj: WorkOrder, obj_in: Union[WorkOrderUpdate, dict]
     ) -> WorkOrder:
         if isinstance(obj_in, dict):
             update_data = obj_in
@@ -161,56 +150,55 @@ class WorkOrderService:
         for field, value in update_data.items():
             setattr(db_obj, field, value)
         self.db.add(db_obj)
-        self.db.commit()
-        self.db.refresh(db_obj)
+        await self.db.commit()
+        await self.db.refresh(db_obj)
         return db_obj
 
-    def remove(self, *, id: UUID) -> Optional[WorkOrder]:
-        obj = self.db.query(WorkOrder).get(id)
+    async def remove(self, *, id: UUID) -> Optional[WorkOrder]:
+        obj = await self.get(id)
         if obj:
-            self.db.delete(obj)
-            self.db.commit()
+            await self.db.delete(obj)
+            await self.db.commit()
         return obj
 
 
 class WorkOrderTaskService:
-    def __init__(self, db: Session):
+    def __init__(self, db: AsyncSession):
         self.db = db
 
-    def get(self, id: UUID) -> Optional[WorkOrderTask]:
-        return (
-            self.db.query(WorkOrderTask)
-            .filter(WorkOrderTask.id == id)
-            .first()
-        )
+    async def get(self, id: UUID) -> Optional[WorkOrderTask]:
+        return await self.db.get(WorkOrderTask, id)
 
-    def get_multi_by_work_order(
+    async def get_multi_by_work_order(
         self, work_order_id: UUID, skip: int = 0, limit: int = 100
     ) -> List[WorkOrderTask]:
-        return (
-            self.db.query(WorkOrderTask)
+        result = await self.db.execute(
+            select(WorkOrderTask)
             .filter(WorkOrderTask.work_order_id == work_order_id)
             .offset(skip)
             .limit(limit)
-            .all()
         )
+        return result.scalars().all()
 
-    def create(self, *, obj_in: WorkOrderTaskCreate) -> WorkOrderTask:
+    async def get_multi(
+        self, *, skip: int = 0, limit: int = 100
+    ) -> List[WorkOrderTask]:
+        result = await self.db.execute(select(WorkOrderTask).offset(skip).limit(limit))
+        return result.scalars().all()
+
+    async def create(self, *, obj_in: WorkOrderTaskCreate) -> WorkOrderTask:
         db_obj = WorkOrderTask(
             title=obj_in.title,
             is_completed=obj_in.is_completed,
             work_order_id=obj_in.work_order_id,
         )
         self.db.add(db_obj)
-        self.db.commit()
-        self.db.refresh(db_obj)
+        await self.db.commit()
+        await self.db.refresh(db_obj)
         return db_obj
 
-    def update(
-        self,
-        *,
-        db_obj: WorkOrderTask,
-        obj_in: Union[WorkOrderTaskUpdate, dict]
+    async def update(
+        self, *, db_obj: WorkOrderTask, obj_in: Union[WorkOrderTaskUpdate, dict]
     ) -> WorkOrderTask:
         if isinstance(obj_in, dict):
             update_data = obj_in
@@ -219,40 +207,42 @@ class WorkOrderTaskService:
         for field, value in update_data.items():
             setattr(db_obj, field, value)
         self.db.add(db_obj)
-        self.db.commit()
-        self.db.refresh(db_obj)
+        await self.db.commit()
+        await self.db.refresh(db_obj)
         return db_obj
 
-    def remove(self, *, id: UUID) -> Optional[WorkOrderTask]:
-        obj = self.db.query(WorkOrderTask).get(id)
+    async def remove(self, *, id: UUID) -> Optional[WorkOrderTask]:
+        obj = await self.get(id)
         if obj:
-            self.db.delete(obj)
-            self.db.commit()
+            await self.db.delete(obj)
+            await self.db.commit()
         return obj
 
 
 class WorkOrderStatusLookupService:
-    def __init__(self, db: Session):
+    def __init__(self, db: AsyncSession):
         self.db = db
 
-    def get(self, id: UUID) -> Optional[WorkOrderStatusLookup]:
-        return (
-            self.db.query(WorkOrderStatusLookup)
-            .filter(WorkOrderStatusLookup.id == id)
-            .first()
+    async def get(self, id: UUID) -> Optional[WorkOrderStatusLookup]:
+        return await self.db.get(WorkOrderStatusLookup, id)
+
+    async def get_by_name(self, name: str) -> Optional[WorkOrderStatusLookup]:
+        result = await self.db.execute(
+            select(WorkOrderStatusLookup).filter(WorkOrderStatusLookup.name == name)
         )
+        return result.scalars().first()
 
-    def get_by_name(self, name: str) -> Optional[WorkOrderStatusLookup]:
-        return (
-            self.db.query(WorkOrderStatusLookup)
-            .filter(WorkOrderStatusLookup.name == name)
-            .first()
+    async def get_multi(
+        self, *, skip: int = 0, limit: int = 100
+    ) -> List[WorkOrderStatusLookup]:
+        result = await self.db.execute(
+            select(WorkOrderStatusLookup).offset(skip).limit(limit)
         )
+        return result.scalars().all()
 
-    def get_multi(self, *, skip: int = 0, limit: int = 100) -> List[WorkOrderStatusLookup]:
-        return self.db.query(WorkOrderStatusLookup).offset(skip).limit(limit).all()
-
-    def create(self, *, obj_in: WorkOrderStatusLookupCreate) -> WorkOrderStatusLookup:
+    async def create(
+        self, *, obj_in: WorkOrderStatusLookupCreate
+    ) -> WorkOrderStatusLookup:
         db_obj = WorkOrderStatusLookup(
             name=obj_in.name,
             abbreviation=obj_in.abbreviation,
@@ -260,11 +250,11 @@ class WorkOrderStatusLookupService:
             is_active=obj_in.is_active,
         )
         self.db.add(db_obj)
-        self.db.commit()
-        self.db.refresh(db_obj)
+        await self.db.commit()
+        await self.db.refresh(db_obj)
         return db_obj
 
-    def update(
+    async def update(
         self,
         *,
         db_obj: WorkOrderStatusLookup,
@@ -277,40 +267,40 @@ class WorkOrderStatusLookupService:
         for field, value in update_data.items():
             setattr(db_obj, field, value)
         self.db.add(db_obj)
-        self.db.commit()
-        self.db.refresh(db_obj)
+        await self.db.commit()
+        await self.db.refresh(db_obj)
         return db_obj
 
-    def remove(self, *, id: UUID) -> Optional[WorkOrderStatusLookup]:
-        obj = self.db.query(WorkOrderStatusLookup).get(id)
+    async def remove(self, *, id: UUID) -> Optional[WorkOrderStatusLookup]:
+        obj = await self.get(id)
         if obj:
-            self.db.delete(obj)
-            self.db.commit()
+            await self.db.delete(obj)
+            await self.db.commit()
         return obj
 
 
 class SalesTypeLookupService:
-    def __init__(self, db: Session):
+    def __init__(self, db: AsyncSession):
         self.db = db
 
-    def get(self, id: UUID) -> Optional[SalesTypeLookup]:
-        return (
-            self.db.query(SalesTypeLookup)
-            .filter(SalesTypeLookup.id == id)
-            .first()
+    async def get(self, id: UUID) -> Optional[SalesTypeLookup]:
+        return await self.db.get(SalesTypeLookup, id)
+
+    async def get_by_name(self, name: str) -> Optional[SalesTypeLookup]:
+        result = await self.db.execute(
+            select(SalesTypeLookup).filter(SalesTypeLookup.name == name)
         )
+        return result.scalars().first()
 
-    def get_by_name(self, name: str) -> Optional[SalesTypeLookup]:
-        return (
-            self.db.query(SalesTypeLookup)
-            .filter(SalesTypeLookup.name == name)
-            .first()
+    async def get_multi(
+        self, *, skip: int = 0, limit: int = 100
+    ) -> List[SalesTypeLookup]:
+        result = await self.db.execute(
+            select(SalesTypeLookup).offset(skip).limit(limit)
         )
+        return result.scalars().all()
 
-    def get_multi(self, *, skip: int = 0, limit: int = 100) -> List[SalesTypeLookup]:
-        return self.db.query(SalesTypeLookup).offset(skip).limit(limit).all()
-
-    def create(self, *, obj_in: SalesTypeLookupCreate) -> SalesTypeLookup:
+    async def create(self, *, obj_in: SalesTypeLookupCreate) -> SalesTypeLookup:
         db_obj = SalesTypeLookup(
             name=obj_in.name,
             abbreviation=obj_in.abbreviation,
@@ -318,15 +308,12 @@ class SalesTypeLookupService:
             is_active=obj_in.is_active,
         )
         self.db.add(db_obj)
-        self.db.commit()
-        self.db.refresh(db_obj)
+        await self.db.commit()
+        await self.db.refresh(db_obj)
         return db_obj
 
-    def update(
-        self,
-        *,
-        db_obj: SalesTypeLookup,
-        obj_in: Union[SalesTypeLookupUpdate, dict]
+    async def update(
+        self, *, db_obj: SalesTypeLookup, obj_in: Union[SalesTypeLookupUpdate, dict]
     ) -> SalesTypeLookup:
         if isinstance(obj_in, dict):
             update_data = obj_in
@@ -335,13 +322,13 @@ class SalesTypeLookupService:
         for field, value in update_data.items():
             setattr(db_obj, field, value)
         self.db.add(db_obj)
-        self.db.commit()
-        self.db.refresh(db_obj)
+        await self.db.commit()
+        await self.db.refresh(db_obj)
         return db_obj
 
-    def remove(self, *, id: UUID) -> Optional[SalesTypeLookup]:
-        obj = self.db.query(SalesTypeLookup).get(id)
+    async def remove(self, *, id: UUID) -> Optional[SalesTypeLookup]:
+        obj = await self.get(id)
         if obj:
-            self.db.delete(obj)
-            self.db.commit()
+            await self.db.delete(obj)
+            await self.db.commit()
         return obj

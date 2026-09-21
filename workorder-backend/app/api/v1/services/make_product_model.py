@@ -4,7 +4,11 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from app.db.models.make_product_model import MakeProductModel
-from app.api.v1.schemas.make_product_model import MakeProductModelCreate, MakeProductModelUpdate, MakeProductModelResponse
+from app.api.v1.schemas.make_product_model import (
+    MakeProductModelCreate,
+    MakeProductModelUpdate,
+    MakeProductModelResponse,
+)
 
 
 class MakeProductModelService:
@@ -14,9 +18,7 @@ class MakeProductModelService:
     def get(self, id: UUID) -> Optional[MakeProductModel]:
         return self.db.query(MakeProductModel).filter(MakeProductModel.id == id).first()
 
-    def get_multi(
-        self, *, skip: int = 0, limit: int = 100
-    ) -> List[MakeProductModel]:
+    def get_multi(self, *, skip: int = 0, limit: int = 100) -> List[MakeProductModel]:
         return self.db.query(MakeProductModel).offset(skip).limit(limit).all()
 
     def create(self, *, obj_in: MakeProductModelCreate) -> MakeProductModel:
@@ -31,7 +33,7 @@ class MakeProductModelService:
             category=obj_in.category,
             sub_category=obj_in.sub_category,
             division=obj_in.division,
-            jd_product_family=obj_in.jd_product_family
+            jd_product_family=obj_in.jd_product_family,
         )
         self.db.add(db_obj)
         self.db.commit()
@@ -39,10 +41,7 @@ class MakeProductModelService:
         return db_obj
 
     def update(
-        self,
-        *,
-        db_obj: MakeProductModel,
-        obj_in: MakeProductModelUpdate
+        self, *, db_obj: MakeProductModel, obj_in: MakeProductModelUpdate
     ) -> MakeProductModel:
         update_data = obj_in.model_dump(exclude_unset=True)
         for field, value in update_data.items():

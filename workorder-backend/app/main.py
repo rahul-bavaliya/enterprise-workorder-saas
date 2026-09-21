@@ -62,7 +62,7 @@ async def health_check():
         "status": "healthy",
         "service": settings.PROJECT_NAME,
         "version": "1.0.0",
-        "timestamp": "2026-09-19T00:00:00Z"
+        "timestamp": "2026-09-19T00:00:00Z",
     }
 
 
@@ -75,5 +75,7 @@ async def health_check_detailed():
         "service": settings.PROJECT_NAME,
         "version": "1.0.0",
         "timestamp": "2026-09-19T00:00:00Z",
-        "environment": settings.ENVIRONMENT if hasattr(settings, 'ENVIRONMENT') else "development"
+        "environment": (
+            settings.ENVIRONMENT if hasattr(settings, "ENVIRONMENT") else "development"
+        ),
     }

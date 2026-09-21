@@ -2,100 +2,149 @@
 from typing import List
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_db, get_current_active_user
-from app.api.v1.schemas.user import UserCreate, UserResponse, UserUpdate
+from app.api.deps import get_current_active_user, get_db
+from app.core.response import ResponseEnvelope
+from app.core.exceptions import NotFoundException
+from app.api.v1.schemas.user import (
+    UserCreate,
+    UserDeleteResponse,
+    UserResponse,
+    UserUpdate,
+)
 from app.api.v1.services.user import UserService
 
+router = APIRouter(prefix="/users", tags=["Users"])
 
-router = APIRouter()
 
-
-@router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-def create_user(
+@router.post(
+    "/",
+    response_model=ResponseEnvelope[UserResponse],
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_user(
     *,
     user_in: UserCreate,
-    db: Session = Depends(get_db)
-) -> UserResponse:
+    db: AsyncSession = Depends(get_db),
+) -> ResponseEnvelope[UserResponse]:
     """
     Create a new user.
     """
     service = UserService(db)
-    return service.create(obj_in=user_in)
+    user = await service.create(obj_in=user_in)
+
+    return ResponseEnvelope[UserResponse].ok(
+        data=UserResponse.model_validate(user),
+        message="User created successfully",
+    )
 
 
-@router.get("/", response_model=List[UserResponse])
-def read_users(
-    db: Session = Depends(get_db),
+@router.get(
+    "/",
+    response_model=ResponseEnvelope[List[UserResponse]],
+)
+async def read_users(
+    db: AsyncSession = Depends(get_db),
     skip: int = 0,
     limit: int = 100,
-    current_user = Depends(get_current_active_user)
-) -> List[UserResponse]:
+    current_user=Depends(get_current_active_user),
+) -> ResponseEnvelope[List[UserResponse]]:
     """
     Retrieve users.
     """
     service = UserService(db)
-    return service.get_multi(skip=skip, limit=limit)
+    users = await service.get_multi(skip=skip, limit=limit)
+
+    user_responses = [UserResponse.model_validate(user) for user in users]
+
+    return ResponseEnvelope[List[UserResponse]].ok(
+        data=user_responses,
+        message="Users retrieved successfully",
+    )
 
 
-@router.get("/{user_id}", response_model=UserResponse)
-def read_user(
+@router.get(
+    "/{user_id}",
+    response_model=ResponseEnvelope[UserResponse],
+)
+async def read_user(
     *,
     user_id: UUID,
-    db: Session = Depends(get_db),
-    current_user = Depends(get_current_active_user)
-) -> UserResponse:
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_active_user),
+) -> ResponseEnvelope[UserResponse]:
     """
-    Get a specific user by id.
+    Get a specific user by ID.
     """
     service = UserService(db)
-    user = service.get(id=user_id)
+    user = await service.get(id=user_id)
+
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
-        )
-    return user
+        raise NotFoundException(message="User not found")
+
+    return ResponseEnvelope[UserResponse].ok(
+        data=UserResponse.model_validate(user),
+        message="User retrieved successfully",
+    )
 
 
-@router.patch("/{user_id}", response_model=UserResponse)
-def update_user(
+@router.patch(
+    "/{user_id}",
+    response_model=ResponseEnvelope[UserResponse],
+)
+async def update_user(
     *,
     user_id: UUID,
     user_in: UserUpdate,
-    db: Session = Depends(get_db),
-    current_user = Depends(get_current_active_user)
-) -> UserResponse:
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_active_user),
+) -> ResponseEnvelope[UserResponse]:
     """
     Update a user.
     """
     service = UserService(db)
-    user = service.get(id=user_id)
+    user = await service.get(id=user_id)
+
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
-        )
-    return service.update(db_obj=user, obj_in=user_in)
+        raise NotFoundException(message="User not found")
+
+    updated_user = await service.update(db_obj=user, obj_in=user_in)
+
+    return ResponseEnvelope[UserResponse].ok(
+        data=UserResponse.model_validate(updated_user),
+        message="User updated successfully",
+    )
 
 
-@router.delete("/{user_id}", response_model=UserResponse)
-def delete_user(
+@router.delete(
+    "/{user_id}",
+    response_model=ResponseEnvelope[UserDeleteResponse],
+)
+async def delete_user(
     *,
     user_id: UUID,
-    db: Session = Depends(get_db),
-    current_user = Depends(get_current_active_user)
-) -> UserResponse:
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_active_user),
+) -> ResponseEnvelope[UserDeleteResponse]:
     """
     Delete a user.
     """
     service = UserService(db)
-    user = service.get(id=user_id)
+    user = await service.get(id=user_id)
+
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
-        )
-    return service.remove(id=user_id)
+        raise NotFoundException(message="User not found")
+
+    deleted_user = UserDeleteResponse(
+        email=user.email,
+        role=user.role,
+    )
+
+    await service.remove(id=user_id)
+
+    return ResponseEnvelope[UserDeleteResponse].ok(
+        data=deleted_user,
+        message="User deleted successfully",
+    )
