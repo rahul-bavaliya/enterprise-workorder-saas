@@ -1,5 +1,5 @@
 # app/core/security.py
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Optional, Union
 from jose import jwt
 from jose.exceptions import JWTError
