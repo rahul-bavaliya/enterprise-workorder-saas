@@ -1,21 +1,17 @@
-"""app.db.models.branch.models.py"""
-
 from datetime import datetime, timezone
 import uuid
 from sqlalchemy import (
-    Column,
     Identity,
     Integer,
     Numeric,
     String,
     Boolean,
     DateTime,
-    ForeignKey,
     Index,
     func,
 )
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import Mapped, mapped_column
 from app.core.database import Base
 
 
@@ -23,77 +19,77 @@ class Branch(Base):
     __tablename__ = "branches"
 
     # Primary Key
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True
+    )
 
     # Branch Details
-    name = Column(String(255), nullable=False)
-    number = Column(
+    name: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    number: Mapped[int] = mapped_column(
         Integer,
         Identity(start=10001, always=False),
         nullable=False,
         unique=True,
     )
-    # lob_id = Column(
-    #     UUID(as_uuid=True),
-    #     ForeignKey("line_of_businesses.id"),
-    #     nullable=False,
-    # )
 
     # Branch Location Details
-    address1 = Column(String(500), nullable=True)
-    address2 = Column(String(500), nullable=True)
-    city = Column(String(255), nullable=False)
-    postal_code = Column(String(20), nullable=False)
-    province = Column(String(255), nullable=False)
-    country = Column(String(255), nullable=False)
-    region = Column(String(255), nullable=True)
-    latitude = Column(Numeric(precision=9, scale=6), nullable=True)
-    longitude = Column(Numeric(precision=9, scale=6), nullable=True)
+    address1: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    address2: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    city: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    postal_code: Mapped[str] = mapped_column(String(20), nullable=False)
+    province: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    country: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    region: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
-    join_key = Column(
+    latitude: Mapped[float | None] = mapped_column(
+        Numeric(precision=9, scale=6), nullable=True
+    )
+    longitude: Mapped[float | None] = mapped_column(
+        Numeric(precision=9, scale=6), nullable=True
+    )
+
+    join_key: Mapped[int] = mapped_column(
         Integer,
         nullable=False,
         unique=True,
+        index=True,
     )
 
     # Branch Contact Details
-    # Increased to String(15) to allow standard E.164 phone formats safely while staying strict
-    phone = Column(String(15), nullable=True)
-    email = Column(String(255), nullable=True)
-    website_url = Column(String(500), nullable=True)
-    contact_person = Column(String(255), nullable=True)
+    phone: Mapped[str | None] = mapped_column(String(15), nullable=True)
+    email: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    website_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    contact_person: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
-    # Division Details
-    division_name = Column(String(255), nullable=True)
-    # Line of Business Details
-    lob_name = Column(String(255), nullable=True)
+    # Division & Line of Business Details
+    division_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    lob_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     # Active Status
-    is_active = Column(Boolean, nullable=False, default=True)
-
-    # Audit Timestamps
-    created_at = Column(
-        DateTime(timezone=True),
-        default=lambda: datetime.now(
-            timezone.utc
-        ),  # Populates on the Python object immediately
-        server_default=func.now(),  # Ensures DB fallback
-        nullable=False,
+    is_active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, index=True
     )
 
-    updated_at = Column(
+    # Audit Timestamps
+    created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
         server_default=func.now(),
-        onupdate=lambda: datetime.now(timezone.utc),  # Punches new time on update
         nullable=False,
     )
 
-    # Database Performance Optimization Indexes
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=None,
+        server_default=func.now(),
+        onupdate=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
+    # Advanced Composite Indexes for Multi-tenant/Location Filtering
     __table_args__ = (
-        Index("ix_branches_email", "email"),
-        Index("ix_branches_is_active", "is_active"),
-        Index("ix_branches_name", "name"),
+        Index("ix_branches_location_composite", "country", "province", "city"),
+        Index("ix_branches_business_div", "lob_name", "division_name"),
     )
 
     def __repr__(self) -> str:

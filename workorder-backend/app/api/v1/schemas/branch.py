@@ -6,16 +6,34 @@ from datetime import datetime
 
 
 class BranchBase(BaseModel):
-    name: str = Field(..., max_length=255)
-    number: Optional[int] = None
-    lob_id: UUID
-    business_id: UUID
-    branch_manager_id: Optional[UUID] = None
-    address1: Optional[str] = Field(None, max_length=500)
-    address2: Optional[str] = Field(None, max_length=500)
-    city: str = Field(..., max_length=255)
-    postal_code: str = Field(..., max_length=20)
-    province: str = Field(..., max_length=255)
+    name: str = Field(
+        ...,
+        max_length=255,
+        description="Branch Full Name",
+        examples=["Regina, Saskatoon"],
+    )
+    number: Optional[int] = Field(
+        ..., max_length=255, description="Branch Number", examples=[101, 102]
+    )
+    address1: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Branch Address1",
+        examples=["7 Cochran Dr", "7101 102 St"],
+    )
+    address2: Optional[str] = Field(
+        None, max_length=500, description="Branch Address2", examples=["Second Floor"]
+    )
+    city: str = Field(
+        ..., max_length=255, description="Branch City", examples=["Regina", "Saskatoon"]
+    )
+    postal_code: str = Field(
+        ...,
+        max_length=20,
+        description="Branch Postal Code",
+        examples=["S4N 0T9", "S4N 0T7"],
+    )
+    province: str = Field(..., max_length=255, description="Branch ")
     country: str = Field(..., max_length=255)
     latitude: Optional[float] = Field(None)
     longitude: Optional[float] = Field(None)

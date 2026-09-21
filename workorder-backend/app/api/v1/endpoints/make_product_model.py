@@ -4,8 +4,8 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.api.deps import get_db
 
-from app.api.deps import get_db, get_current_active_user
 from app.core.response import ResponseEnvelope
 from app.core.exceptions import NotFoundException
 from app.api.v1.schemas.make_product_model import (
@@ -27,7 +27,6 @@ async def create_make_product_model(
     *,
     model_in: MakeProductModelCreate,
     db: AsyncSession = Depends(get_db),
-    current_user=Depends(get_current_active_user)
 ) -> ResponseEnvelope[MakeProductModelResponse]:
     """
     Create a new make product model.
@@ -45,7 +44,6 @@ async def read_make_product_models(
     db: AsyncSession = Depends(get_db),
     skip: int = 0,
     limit: int = 100,
-    current_user=Depends(get_current_active_user),
 ) -> ResponseEnvelope[List[MakeProductModelResponse]]:
     """
     Retrieve make product models.
@@ -63,7 +61,6 @@ async def read_make_product_model(
     *,
     model_id: UUID,
     db: AsyncSession = Depends(get_db),
-    current_user=Depends(get_current_active_user)
 ) -> ResponseEnvelope[MakeProductModelResponse]:
     """
     Get a specific make product model by id.
@@ -84,7 +81,6 @@ async def update_make_product_model(
     model_id: UUID,
     model_in: MakeProductModelUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user=Depends(get_current_active_user)
 ) -> ResponseEnvelope[MakeProductModelResponse]:
     """
     Update a make product model.
@@ -105,7 +101,6 @@ async def delete_make_product_model(
     *,
     model_id: UUID,
     db: AsyncSession = Depends(get_db),
-    current_user=Depends(get_current_active_user)
 ) -> ResponseEnvelope[MakeProductModelResponse]:
     """
     Delete a make product model.

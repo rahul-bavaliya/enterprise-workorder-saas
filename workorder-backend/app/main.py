@@ -27,7 +27,6 @@ app = FastAPI(
         "name": "MIT",
         "url": "https://opensource.org/licenses/MIT",
     },
-    # Disable default docs URLs to use custom ones if needed
     docs_url="/docs",
     redoc_url="/redoc",
 )
@@ -62,19 +61,18 @@ async def health_check():
         "status": "healthy",
         "service": settings.PROJECT_NAME,
         "version": "1.0.0",
-        "timestamp": "2026-09-19T00:00:00Z",
+        "timestamp": "2026-09-21T00:00:00Z",
     }
 
 
 @app.get("/health", tags=["health"])
 async def health_check_detailed():
     """Detailed health check endpoint."""
-    # In a real implementation, you would check database, redis, etc.
     return {
         "status": "healthy",
         "service": settings.PROJECT_NAME,
         "version": "1.0.0",
-        "timestamp": "2026-09-19T00:00:00Z",
+        "timestamp": "2026-09-21T00:00:00Z",
         "environment": (
             settings.ENVIRONMENT if hasattr(settings, "ENVIRONMENT") else "development"
         ),
