@@ -18,10 +18,21 @@ sys.path.append(str(Path(__file__).resolve().parents[1]))
 # Import your application's Base, models, and settings config
 from app.core.database import Base
 from app.core.config import settings
+
+
+from app.db.models.business import Business
 from app.db.models.branch import Branch
 from app.db.models.customer import Customer
+from app.db.models.line_of_business import LineOfBusiness
 from app.db.models.user import User
-from app.db.models.work_order import Asset, WorkOrder, WorkOrderTask
+from app.db.models.work_order import (
+    WorkOrder,
+    WorkOrderStatusLookup,
+    SalesTypeLookup,
+    Asset,
+    AssetCategory,
+    WorkOrderPriority,
+)
 
 config = context.config
 
