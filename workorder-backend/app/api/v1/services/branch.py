@@ -3,6 +3,7 @@ from typing import List, Optional, Union
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from app.db.models.branch import Branch
 from app.api.v1.schemas.branch import BranchCreate, BranchUpdate
 
@@ -18,33 +19,22 @@ class BranchService:
         result = await self.db.execute(select(Branch).offset(skip).limit(limit))
         return result.scalars().all()
 
-    async def create(self, *, obj_in: BranchCreate) -> Branch:
-        db_obj = Branch(
-            business_id=obj_in.business_id,
-            branch_manager_id=obj_in.branch_manager_id,
-            name=obj_in.name,
-            number=obj_in.number,
-            lob_id=obj_in.lob_id,
-            address1=obj_in.address1,
-            address2=obj_in.address2,
-            city=obj_in.city,
-            postal_code=obj_in.postal_code,
-            province=obj_in.province,
-            country=obj_in.country,
-            latitude=obj_in.latitude,
-            longitude=obj_in.longitude,
-            region=obj_in.region,
-            phone=obj_in.phone,
-            email=obj_in.email,
-            website_url=obj_in.website_url,
-            contact_person=obj_in.contact_person,
-            division_name=obj_in.division_name,
-            is_active=obj_in.is_active,
-        )
+    async def create(self, *, obj_in: BranchCreate) -> Optional[Branch]:
+        data = obj_in.model_dump()
+
+        db_obj = Branch(**data)
         self.db.add(db_obj)
-        await self.db.commit()
-        await self.db.refresh(db_obj)
-        return db_obj
+
+        try:
+            await self.db.commit()
+            await self.db.refresh(db_obj)
+            return db_obj
+        except IntegrityError:
+            # Rollback the failed transaction so the session remains usable for next rows
+            await self.db.rollback()
+            # Depending on your use case, you can either return None,
+            # re-raise a custom HTTPException, or handle upsert logic here.
+            return None
 
     async def update(
         self, *, db_obj: Branch, obj_in: Union[BranchUpdate, dict]

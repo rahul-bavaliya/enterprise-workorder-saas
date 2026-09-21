@@ -10,9 +10,7 @@ from app.core.response import ResponseEnvelope
 from app.core.exceptions import NotFoundException
 from app.api.v1.schemas.branch import BranchCreate, BranchResponse, BranchUpdate
 from app.api.v1.services.branch import BranchService
-import io
-import csv
-from fastapi import UploadFile, File
+
 
 router = APIRouter()
 
@@ -115,67 +113,4 @@ async def delete_branch(
     return ResponseEnvelope[BranchResponse].ok(
         data=BranchResponse.model_validate(deleted_branch),
         message="Branch deleted successfully",
-    )
-
-
-@router.post(
-    "/bulk-upload",
-    response_model=ResponseEnvelope[dict],
-    status_code=status.HTTP_201_CREATED,
-)
-async def bulk_upload_branches(
-    file: UploadFile = File(...),
-    db: AsyncSession = Depends(get_db),
-) -> ResponseEnvelope[dict]:
-    """
-    Bulk upload branches from a CSV file.
-    """
-    if not file.filename.endswith(".csv"):
-        return ResponseEnvelope[dict].error(
-            code="INVALID_FILE_FORMAT", message="Please upload a valid CSV file."
-        )
-
-    contents = await file.read()
-    decoded = contents.decode("utf-8")
-    reader = csv.DictReader(io.StringIO(decoded))
-
-    service = BranchService(db)
-    success_count = 0
-    errors = []
-
-    for row in reader:
-        try:
-            # Map your CSV columns to your BranchCreate schema fields.
-            # Adjust keys below to match exact column names inside your Branches.csv
-            branch_in = BranchCreate(
-                name=row.get("Branch Name"),
-                number=int(row.get("Branch Number", 0)),
-                lob_id=row.get("lob_id"),
-                business_id=row.get("business_id"),
-                branch_manager_id=row.get("branch_manager_id") or None,
-                address1=row.get("Address1"),
-                address2=None,
-                city=row.get("Branch City"),
-                postal_code=row.get("PostalCode"),
-                province=row.get("Branch Province"),
-                country=row.get("Branch Country"),
-                latitude=float(row.get("Latitude", 0.0)),
-                longitude=float(row.get("Longitude", 0.0)),
-                region=row.get("Region Name"),
-                phone=row.get("phone"),
-                email=row.get("email"),
-                website_url=row.get("website_url"),
-                contact_person=row.get("contact_person"),
-                division_name=row.get("division_name"),
-                is_active=str(row.get("is_active", "True")).lower()
-                in ("true", "1", "yes"),
-            )
-            await service.create(obj_in=branch_in)
-            success_count += 1
-        except Exception as e:
-            errors.append({"row": row, "error": str(e)})
-
-    return ResponseEnvelope[dict].ok(
-        data={"success_count": success_count, "errors": errors},
-        message=f"Successfully uploaded {success_count} branches.",
     )

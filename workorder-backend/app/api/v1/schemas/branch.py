@@ -1,106 +1,200 @@
 # app/api/v1/schemas/branch.py
-from pydantic import BaseModel, Field
+from datetime import datetime
 from typing import Optional
 from uuid import UUID
-from datetime import datetime
+from pydantic import BaseModel, ConfigDict, Field, EmailStr
 
 
 class BranchBase(BaseModel):
     name: str = Field(
         ...,
         max_length=255,
-        description="Branch Full Name",
-        examples=["Regina, Saskatoon"],
+        description="Official registered name of the branch office.",
+        examples=["Regina Central Hub"],
     )
     number: Optional[int] = Field(
-        ..., max_length=255, description="Branch Number", examples=[101, 102]
+        None,
+        description="Unique sequential branch identification number (auto-generated if omitted).",
+        examples=[10001],
     )
+    join_key: int = Field(
+        ...,
+        description="Unique legacy or relational join key used to map external ERP or CSV data.",
+        examples=[501],
+    )
+
+    # Address Details
     address1: Optional[str] = Field(
         None,
         max_length=500,
-        description="Branch Address1",
-        examples=["7 Cochran Dr", "7101 102 St"],
+        description="Primary street address line of the branch location.",
+        examples=["7 Cochran Dr"],
     )
     address2: Optional[str] = Field(
-        None, max_length=500, description="Branch Address2", examples=["Second Floor"]
+        None,
+        max_length=500,
+        description="Secondary street address line (e.g., suite, unit, or floor number).",
+        examples=["Second Floor, Suite 200"],
     )
     city: str = Field(
-        ..., max_length=255, description="Branch City", examples=["Regina", "Saskatoon"]
+        ...,
+        max_length=500,
+        description="City where the branch is physically located.",
+        examples=["Regina"],
     )
     postal_code: str = Field(
         ...,
         max_length=20,
-        description="Branch Postal Code",
-        examples=["S4N 0T9", "S4N 0T7"],
+        description="Postal code or ZIP code of the branch location.",
+        examples=["S4N 0T9"],
     )
-    province: str = Field(..., max_length=255, description="Branch ")
-    country: str = Field(..., max_length=255)
-    latitude: Optional[float] = Field(None)
-    longitude: Optional[float] = Field(None)
-    region: Optional[str] = Field(None, max_length=255)
-    phone: Optional[str] = Field(None, max_length=15)
-    email: Optional[str] = Field(None, max_length=255)
-    website_url: Optional[str] = Field(None, max_length=500)
-    contact_person: Optional[str] = Field(None, max_length=255)
-    division_name: str = Field(..., max_length=255)
-    is_active: bool = True
+    province: str = Field(
+        ...,
+        max_length=255,
+        description="Province, state, or territory where the branch is located.",
+        examples=["Saskatchewan"],
+    )
+    country: str = Field(
+        ...,
+        max_length=255,
+        description="Country where the branch operates.",
+        examples=["Canada"],
+    )
+
+    # Geographic Coordinates
+    latitude: Optional[float] = Field(
+        None,
+        description="Geographic coordinate latitude for mapping and spatial queries.",
+        examples=[50.445210],
+    )
+    longitude: Optional[float] = Field(
+        None,
+        description="Geographic coordinate longitude for mapping and spatial queries.",
+        examples=[-104.618894],
+    )
+    region: Optional[str] = Field(
+        None,
+        max_length=255,
+        description="Broader operational or administrative region name.",
+        examples=["Western Region"],
+    )
+
+    # Contact Details
+    phone: Optional[str] = Field(
+        None,
+        max_length=15,
+        description="Primary contact telephone number for the branch office.",
+        examples=["+13065550199"],
+    )
+    email: Optional[EmailStr] = Field(
+        None,
+        description="Official communication email address for the branch.",
+        examples=["regina.central@example.com"],
+    )
+    website_url: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Web URL specific to this branch location.",
+        examples=["https://branches.example.com/regina"],
+    )
+    contact_person: Optional[str] = Field(
+        None,
+        max_length=255,
+        description="Full name of the designated manager or primary contact person.",
+        examples=["Jane Doe"],
+    )
+
+    # Division & Line of Business
+    division_name: Optional[str] = Field(
+        None,
+        max_length=255,
+        description="Corporate division or business unit assigned to this branch.",
+        examples=["Commercial Services Division"],
+    )
+    lob_name: Optional[str] = Field(
+        None,
+        max_length=255,
+        description="Associated Line of Business name.",
+        examples=["Field Operations"],
+    )
+
+    is_active: bool = Field(
+        True,
+        description="Operational status flag indicating whether the branch is currently active.",
+        examples=[True],
+    )
 
 
 class BranchCreate(BranchBase):
+    """Schema for creating a new branch record."""
+
     pass
 
 
 class BranchUpdate(BaseModel):
-    name: Optional[str] = Field(None, max_length=255)
-    number: Optional[int] = None
-    lob_id: Optional[UUID] = None
-    business_id: Optional[UUID] = None
-    branch_manager_id: Optional[UUID] = None
-    address1: Optional[str] = Field(None, max_length=500)
-    address2: Optional[str] = Field(None, max_length=500)
-    city: Optional[str] = Field(None, max_length=255)
-    postal_code: Optional[str] = Field(None, max_length=20)
-    province: Optional[str] = Field(None, max_length=255)
-    country: Optional[str] = Field(None, max_length=255)
-    latitude: Optional[float] = Field(None)
-    longitude: Optional[float] = Field(None)
-    region: Optional[str] = Field(None, max_length=255)
-    phone: Optional[str] = Field(None, max_length=15)
-    email: Optional[str] = Field(None, max_length=255)
-    website_url: Optional[str] = Field(None, max_length=500)
-    contact_person: Optional[str] = Field(None, max_length=255)
-    division_name: Optional[str] = Field(None, max_length=255)
-    is_active: Optional[bool] = None
+    """Schema for updating an existing branch record (all fields optional)."""
+
+    name: Optional[str] = Field(
+        None,
+        max_length=255,
+        description="Updated branch name.",
+        examples=["Regina North Hub"],
+    )
+    number: Optional[int] = Field(
+        None, description="Updated branch number.", examples=[10002]
+    )
+    join_key: Optional[int] = Field(
+        None, description="Updated join key.", examples=[502]
+    )
+    address1: Optional[str] = Field(
+        None, max_length=500, description="Updated street address."
+    )
+    address2: Optional[str] = Field(
+        None, max_length=500, description="Updated suite/unit details."
+    )
+    city: Optional[str] = Field(None, max_length=255, description="Updated city.")
+    postal_code: Optional[str] = Field(
+        None, max_length=20, description="Updated postal code."
+    )
+    province: Optional[str] = Field(
+        None, max_length=255, description="Updated province/state."
+    )
+    country: Optional[str] = Field(None, max_length=255, description="Updated country.")
+    latitude: Optional[float] = Field(None, description="Updated latitude.")
+    longitude: Optional[float] = Field(None, description="Updated longitude.")
+    region: Optional[str] = Field(None, max_length=255, description="Updated region.")
+    phone: Optional[str] = Field(
+        None, max_length=15, description="Updated phone number."
+    )
+    email: Optional[EmailStr] = Field(None, description="Updated email address.")
+    website_url: Optional[str] = Field(
+        None, max_length=500, description="Updated website URL."
+    )
+    contact_person: Optional[str] = Field(
+        None, max_length=255, description="Updated contact person."
+    )
+    division_name: Optional[str] = Field(
+        None, max_length=255, description="Updated division name."
+    )
+    lob_name: Optional[str] = Field(
+        None, max_length=255, description="Updated line of business name."
+    )
+    is_active: Optional[bool] = Field(None, description="Updated active status flag.")
 
 
 class BranchResponse(BranchBase):
-    id: UUID
-    created_at: datetime
-    updated_at: datetime
+    """Schema for returning branch data with database identifiers and audit timestamps."""
 
-    class Config:
-        from_attributes = True
+    id: UUID = Field(
+        ...,
+        description="Unique database primary key (UUID v4).",
+        examples=["3fa85f64-5717-4562-b3fc-2c963f66afa6"],
+    )
+    created_at: datetime = Field(
+        ..., description="Timestamp when the branch record was created."
+    )
+    updated_at: datetime = Field(
+        ..., description="Timestamp when the branch record was last updated."
+    )
 
-
-# LineOfBusiness schemas
-class LineOfBusinessBase(BaseModel):
-    lob_name: str = Field(..., max_length=255)
-    is_active: bool = True
-
-
-class LineOfBusinessCreate(LineOfBusinessBase):
-    pass
-
-
-class LineOfBusinessUpdate(BaseModel):
-    lob_name: Optional[str] = Field(None, max_length=255)
-    is_active: Optional[bool] = None
-
-
-class LineOfBusinessResponse(LineOfBusinessBase):
-    id: UUID
-    created_at: datetime
-    updated_at: datetime
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

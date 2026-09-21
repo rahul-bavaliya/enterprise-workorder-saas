@@ -81,7 +81,7 @@ class Branch(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=None,
-        server_default=func.now(),
+        # server_default=func.now(),
         onupdate=lambda: datetime.now(timezone.utc),
         nullable=False,
     )
