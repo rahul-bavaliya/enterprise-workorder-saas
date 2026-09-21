@@ -26,27 +26,14 @@ class Branch(Base):
     # Primary Key
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
-<<<<<<<< HEAD:workorder-backend/app/db/models/branch.py
     # Business Relationship
     business_id = Column(
-        UUID(as_uuid=True),
-        ForeignKey("businesses.id"),
-        nullable=False
+        UUID(as_uuid=True), ForeignKey("businesses.id"), nullable=False
     )
 
     # Branch Manager Relationship
     branch_manager_id = Column(
-        UUID(as_uuid=True),
-        ForeignKey("users.id"),
-        nullable=True
-========
-    # Foreign Key pointing to Line of Business
-    lob_id = Column(
-        UUID(as_uuid=True),
-        ForeignKey("line_of_businesses.id", ondelete="RESTRICT"),
-        nullable=False,
-        index=True,
->>>>>>>> main:workorder-backend/app/modules/branch/models.py
+        UUID(as_uuid=True), ForeignKey("users.id"), nullable=True
     )
 
     # Branch Details
@@ -81,12 +68,9 @@ class Branch(Base):
     website_url = Column(String(500), nullable=True)
     contact_person = Column(String(255), nullable=True)
 
-<<<<<<<< HEAD:workorder-backend/app/db/models/branch.py
     # Division Details
     division_name = Column(String(255), nullable=False)
 
-========
->>>>>>>> main:workorder-backend/app/modules/branch/models.py
     # Active Status
     is_active = Column(Boolean, nullable=False, default=True)
 
@@ -109,20 +93,15 @@ class Branch(Base):
     )
 
     # Relationships
-<<<<<<<< HEAD:workorder-backend/app/db/models/branch.py
     business = relationship("Business", back_populates="branches")
     branch_manager = relationship("User", foreign_keys=[branch_manager_id])
     line_of_business = relationship("LineOfBusiness", back_populates="branches")
     departments = relationship("Department", back_populates="branch")
-========
-    line_of_business = relationship("LineOfBusiness", back_populates="branches")
->>>>>>>> main:workorder-backend/app/modules/branch/models.py
 
     # Database Performance Optimization Indexes
     __table_args__ = (
         Index("ix_branches_email", "email"),
         Index("ix_branches_is_active", "is_active"),
-<<<<<<<< HEAD:workorder-backend/app/db/models/branch.py
         Index("ix_branches_name", "name"),
         Index("ix_branches_business_id", "business_id"),
         Index("ix_branches_branch_manager_id", "branch_manager_id"),
@@ -130,9 +109,3 @@ class Branch(Base):
 
     def __repr__(self) -> str:
         return f"<Branch(id={self.id}, name={self.name!r}, number={self.number})>"
-========
-        Index(
-            "ix_branches_name", "name", unique=True
-        ),  # Enforces unique name at DB level
-    )
->>>>>>>> main:workorder-backend/app/modules/branch/models.py
