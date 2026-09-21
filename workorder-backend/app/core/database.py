@@ -10,9 +10,17 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-engine = create_engine(settings.DATABASE_URL, echo=settings.SQL_ECHO, future=True)
+engine = create_engine(
+    settings.DATABASE_URL,
+    echo=settings.SQL_ECHO,
+    future=True,
+)
+
 SessionLocal = sessionmaker(
-    autocommit=False, autoflush=False, bind=engine
+    bind=engine,
+    autoflush=False,
+    autocommit=False,
+    expire_on_commit=False,
 )
 
 
@@ -20,7 +28,7 @@ class Base(DeclarativeBase):
     pass
 
 
-def get_db() -> Session:
+def get_db():
     logger.info("Creating database session")
     db = SessionLocal()
     try:
