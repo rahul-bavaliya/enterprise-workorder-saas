@@ -16,6 +16,8 @@ class UserRole(str, enum.Enum):
     VIEWER = "viewer"
     SERVICE_MANAGER = "service_manager"
     SERVICE_WRITER = "service_writer"
+    BRANCH_MANAGER = "branch_manager"
+    FOREMAN = "foreman"
 
 
 class User(Base):
@@ -24,7 +26,7 @@ class User(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     email = Column(String(255), nullable=False, unique=True, index=True)
     hashed_password = Column(String(255), nullable=False)
-    role = Column(Enum(UserRole), nullable=False, default=UserRole.TECHNICIAN)
+    role = Column(Enum(UserRole, values_callable=lambda x: [e.value for e in x]), nullable=False, default=UserRole.TECHNICIAN)
     is_active = Column(Boolean, nullable=False, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

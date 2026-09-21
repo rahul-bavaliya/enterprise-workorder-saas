@@ -1,5 +1,5 @@
 # app/api/v1/endpoints/work_orders.py
-from typing import List
+from typing import List, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
