@@ -69,14 +69,7 @@ def update_customer(
     current_user = Depends(get_current_active_user)
 ) -> CustomerResponse:
     """
-    Update a customer = customer_repository.get(db=db, id=customer_id)
-    if not customer:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Customer not found",
-        )
-    customer = customer_repository.update(db=db, db_obj=customer, obj_in=customer_in)
-    return customer
+    Update a customer.
     """
     service = CustomerService(db)
     customer = service.get(id=customer_id)
