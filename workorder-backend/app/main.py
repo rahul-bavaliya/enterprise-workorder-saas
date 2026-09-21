@@ -9,7 +9,6 @@ from app.core.config import settings
 from app.core.logging import setup_logging
 from app.core.exceptions import register_exception_handlers
 
-
 # Initialize logging configuration
 setup_logging()
 logger = logging.getLogger(__name__)

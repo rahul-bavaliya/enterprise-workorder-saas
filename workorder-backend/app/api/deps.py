@@ -23,7 +23,10 @@ def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ) -> User:
     token = credentials.credentials
-    payload = verify_token(token)
+    try:
+        payload = verify_token(token)
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate credentials")
     user_id = payload.get("sub")
     if user_id is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate credentials")

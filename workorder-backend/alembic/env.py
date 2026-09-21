@@ -1,6 +1,7 @@
-""" alembic/env.py
+"""alembic/env.py
 This is the Alembic environment script for handling database migrations.
-It sets up the database connection and runs migrations in both offline and online modes."""
+It sets up the database connection and runs migrations in both offline and online modes.
+"""
 
 import asyncio
 import os
@@ -29,12 +30,14 @@ if config.config_file_name is not None:
 
 target_metadata = Base.metadata
 
+
 def get_url() -> str:
     """Retrieve database URL and ensure it uses the async driver for Alembic."""
     db_url = os.getenv("DATABASE_URL", settings.DATABASE_URL)
     if "postgresql://" in db_url and "+asyncpg" not in db_url:
         db_url = db_url.replace("postgresql://", "postgresql+asyncpg://")
     return db_url
+
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode."""
@@ -49,11 +52,13 @@ def run_migrations_offline() -> None:
     with context.begin_transaction():
         context.run_migrations()
 
+
 def do_run_migrations(connection) -> None:
     context.configure(connection=connection, target_metadata=target_metadata)
 
     with context.begin_transaction():
         context.run_migrations()
+
 
 async def run_async_migrations() -> None:
     """Create an AsyncEngine and associate a connection with the context."""
@@ -69,9 +74,11 @@ async def run_async_migrations() -> None:
 
     await connectable.dispose()
 
+
 def run_migrations_online() -> None:
     """Run migrations in 'online' mode using asyncio."""
     asyncio.run(run_async_migrations())
+
 
 if context.is_offline_mode():
     run_migrations_offline()
