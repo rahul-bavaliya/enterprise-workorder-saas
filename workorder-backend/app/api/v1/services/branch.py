@@ -2,9 +2,8 @@
 from typing import List, Optional, Union
 from uuid import UUID
 from sqlalchemy.orm import Session
-
 from app.db.models.branch import Branch
-from app.api.v1.schemas.branch import BranchCreate, BranchUpdate, BranchResponse
+from app.api.v1.schemas.branch import BranchCreate, BranchUpdate
 
 
 class BranchService:
@@ -21,6 +20,8 @@ class BranchService:
 
     def create(self, *, obj_in: BranchCreate) -> Branch:
         db_obj = Branch(
+            business_id=obj_in.business_id,
+            branch_manager_id=obj_in.branch_manager_id,
             name=obj_in.name,
             number=obj_in.number,
             lob_id=obj_in.lob_id,
@@ -55,8 +56,10 @@ class BranchService:
             update_data = obj_in
         else:
             update_data = obj_in.model_dump(exclude_unset=True)
+
         for field, value in update_data.items():
             setattr(db_obj, field, value)
+
         self.db.add(db_obj)
         self.db.commit()
         self.db.refresh(db_obj)

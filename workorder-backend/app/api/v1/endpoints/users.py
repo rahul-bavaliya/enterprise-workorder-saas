@@ -17,8 +17,7 @@ router = APIRouter()
 def create_user(
     *,
     user_in: UserCreate,
-    db: Session = Depends(get_db),
-    current_user = Depends(get_current_active_user)
+    db: Session = Depends(get_db)
 ) -> UserResponse:
     """
     Create a new user.

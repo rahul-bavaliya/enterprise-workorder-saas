@@ -25,6 +25,19 @@ class Branch(Base):
     # Primary Key
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
+    # Business Relationship
+    business_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("businesses.id"),
+        nullable=False
+    )
+
+    # Branch Manager Relationship
+    branch_manager_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id"),
+        nullable=True
+    )
 
     # Branch Details
     name = Column(String(255), nullable=False)
@@ -76,13 +89,18 @@ class Branch(Base):
     )
 
     # Relationships
+    business = relationship("Business", back_populates="branches")
+    branch_manager = relationship("User", foreign_keys=[branch_manager_id])
     line_of_business = relationship("LineOfBusiness", back_populates="branches")
+    departments = relationship("Department", back_populates="branch")
 
     # Database Performance Optimization Indexes
     __table_args__ = (
         Index("ix_branches_email", "email"),
         Index("ix_branches_is_active", "is_active"),
         Index("ix_branches_name", "name"),
+        Index("ix_branches_business_id", "business_id"),
+        Index("ix_branches_branch_manager_id", "branch_manager_id"),
     )
 
     def __repr__(self) -> str:

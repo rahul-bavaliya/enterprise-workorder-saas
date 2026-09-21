@@ -9,6 +9,8 @@ class BranchBase(BaseModel):
     name: str = Field(..., max_length=255)
     number: Optional[int] = None
     lob_id: UUID
+    business_id: UUID
+    branch_manager_id: Optional[UUID] = None
     address1: Optional[str] = Field(None, max_length=500)
     address2: Optional[str] = Field(None, max_length=500)
     city: str = Field(..., max_length=255)
@@ -34,6 +36,8 @@ class BranchUpdate(BaseModel):
     name: Optional[str] = Field(None, max_length=255)
     number: Optional[int] = None
     lob_id: Optional[UUID] = None
+    business_id: Optional[UUID] = None
+    branch_manager_id: Optional[UUID] = None
     address1: Optional[str] = Field(None, max_length=500)
     address2: Optional[str] = Field(None, max_length=500)
     city: Optional[str] = Field(None, max_length=255)
