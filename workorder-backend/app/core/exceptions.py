@@ -23,6 +23,15 @@ class NotFoundException(AppException):
         )
 
 
+class ExistingRecordException(AppException):
+    def __init__(self, message: str = "Record already exists"):
+        super().__init__(
+            message=message,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            error_code="EXISTING_RECORD",
+        )
+
+
 class NotActiveException(AppException):
     def __init__(self, message: str = "Resource is not active"):
         super().__init__(
@@ -38,15 +47,6 @@ class DatabaseException(AppException):
             message=message,
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             error_code="DB_ERROR",
-        )
-
-
-class ExistingRecordException(AppException):
-    def __init__(self, message: str = "Record already exists"):
-        super().__init__(
-            message=message,
-            status_code=status.HTTP_400_BAD_REQUEST,
-            error_code="EXISTING_RECORD",
         )
 
 
@@ -66,8 +66,5 @@ def register_exception_handlers(app: FastAPI):
         # Here we return a generic database error to avoid leaking details
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content=ResponseEnvelope.fail(
-                message="Database operation failed",
-                error={"code": "DB_ERROR", "details": str(exc)},
-            ).model_dump(),
+            content=ResponseEnvelope.fail(message="Database operation failed", error={"code": "DB_ERROR", "details": str(exc)}).model_dump()
         )

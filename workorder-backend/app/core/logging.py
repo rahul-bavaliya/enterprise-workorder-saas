@@ -2,7 +2,12 @@
 
 import logging
 import sys
-from pythonjsonlogger import jsonlogger  # Optional, or standard text formatting
+try:
+    from pythonjsonlogger import jsonlogger  # Optional, or standard text formatting
+    HAS_JSON_LOGGER = True
+except ImportError:
+    jsonlogger = None
+    HAS_JSON_LOGGER = False
 
 
 class ColoredFormatter(logging.Formatter):
